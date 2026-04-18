@@ -1,4 +1,6 @@
+import itertools
 import logging
+from typing import Literal
 
 import instaloader
 from feedgen.feed import FeedGenerator
@@ -8,7 +10,7 @@ from config import settings
 
 logger = logging.getLogger(__name__)
 
-CacheStatus = str  # Literal["HIT", "MISS", "STALE"]
+CacheStatus = Literal["HIT", "MISS", "STALE"]
 
 
 def _build_rss(username: str, posts: list) -> bytes:
@@ -43,7 +45,7 @@ def _fetch_fresh(username: str) -> bytes:
         quiet=True,
     )
     profile = instaloader.Profile.from_username(loader.context, username)
-    posts = list(profile.get_posts())
+    posts = list(itertools.islice(profile.get_posts(), 20))
     return _build_rss(username, posts)
 
 

@@ -45,6 +45,7 @@ def test_feed_stale_header_when_cache_stale():
     with patch("main.get_feed", return_value=(fake_rss, "STALE")):
         response = client.get("/feed/testuser")
     assert response.status_code == 200
+    assert response.headers["x-cache"] == "STALE"
     assert response.headers["x-cache-stale"] == "true"
 
 

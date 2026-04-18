@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import FastAPI, HTTPException, Path, Request, Response
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
@@ -30,11 +30,14 @@ def list_accounts():
 
 @app.get("/feed/{username}")
 @limiter.limit("2/minute")
-async def feed(username: str, request: Request):
+async def feed(
+    request: Request,
+    username: str = Path(pattern=r"^[a-zA-Z0-9._]{1,30}$"),
+):
     try:
         rss_bytes, cache_status = get_feed(username)
         headers = {
-            "X-Cache": "HIT" if cache_status == "HIT" else "MISS",
+            "X-Cache": cache_status,
             "X-Cache-Stale": "true" if cache_status == "STALE" else "false",
         }
         return Response(content=rss_bytes, media_type="application/rss+xml", headers=headers)
@@ -47,7 +50,10 @@ async def feed(username: str, request: Request):
 
 
 @app.post("/import/{username}", status_code=202)
-async def import_posts(username: str, posts: list[dict]):
+async def import_posts(
+    posts: list[dict],
+    username: str = Path(pattern=r"^[a-zA-Z0-9._]{1,30}$"),
+):
     """Fallback manual: recebe lista de posts e gera RSS sem Instaloader."""
     from feedgen.feed import FeedGenerator
 
