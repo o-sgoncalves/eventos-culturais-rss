@@ -1,0 +1,111 @@
+version: '3.8'
+
+services:
+  rss-scraper:
+    build: ./rss-scraper
+    container_name: goiania-rss-scraper
+    ports:
+      - "8001:8000"
+    volumes:
+      - rss_cache:/app/cache
+    environment:
+      - CACHE_TTL=21600
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  db:
+    image: postgres:15-alpine
+    container_name: goiania-db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=goiania_cultural
+      - POSTGRES_USER=goiania
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U goiania -d goiania_cultural"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: goiania-redis
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 3
+
+  api:
+    build: ./backend
+    container_name: goiania-api
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rss-scraper:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://goiania:${DB_PASSWORD}@db:5432/goiania_cultural
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRE_HOURS=${JWT_EXPIRE_HOURS:-24}
+      - RSS_SERVICE_URL=${RSS_SERVICE_URL:-http://rss-scraper:8000}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - CORS_ORIGINS=${CORS_ORIGINS:-["http://localhost"]}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  worker:
+    build: ./backend
+    container_name: goiania-worker
+    command: python workers/rss_processor.py
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://goiania:${DB_PASSWORD}@db:5432/goiania_cultural
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - RSS_SERVICE_URL=${RSS_SERVICE_URL:-http://rss-scraper:8000}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: goiania-frontend
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: goiania-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - api
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  rss_cache:
