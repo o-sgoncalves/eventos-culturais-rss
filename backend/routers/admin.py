@@ -133,3 +133,31 @@ def stats(db: Session = Depends(get_db), _: User = Depends(_require_admin)):
         .all()
     )
     return StatsOut(total_events=total, pending_events=pending, approved_events=approved, by_category=by_cat)
+
+
+@router.post("/api/import", status_code=201)
+def import_events(events: list[dict], db: Session = Depends(get_db), _: User = Depends(_require_admin)):
+    saved = 0
+    for item in events:
+        existing = db.query(Event).filter(Event.source_url == item.get("source_url")).first()
+        if existing:
+            continue
+        event = Event(
+            title=item.get("title", "Evento importado"),
+            description=item.get("description"),
+            event_date=item.get("event_date"),
+            location=item.get("location"),
+            price=item.get("price"),
+            is_free=item.get("is_free", False),
+            category=item.get("category"),
+            source_url=item.get("source_url"),
+            image_url=item.get("image_url"),
+            approved=False,
+        )
+        db.add(event)
+        try:
+            db.commit()
+            saved += 1
+        except Exception:
+            db.rollback()
+    return {"imported": saved}

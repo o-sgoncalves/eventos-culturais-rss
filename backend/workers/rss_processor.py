@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 import feedparser
 import httpx
@@ -51,7 +51,7 @@ def _process_source(source: Source, db) -> int:
         except IntegrityError:
             db.rollback()
 
-    source.last_scraped = datetime.utcnow()
+    source.last_scraped = datetime.now(timezone.utc)
     source.error_count = 0
     db.commit()
     return new_count
