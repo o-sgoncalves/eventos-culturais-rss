@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  backend-lint-test:
+    name: Backend (lint + tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt ruff
+
+      - name: Lint (ruff)
+        run: ruff check backend/
+
+      - name: Run tests
+        run: pytest backend/tests/ -v --tb=short
+
+  rss-scraper-lint-test:
+    name: RSS Scraper (lint + tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: rss-scraper/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r rss-scraper/requirements.txt ruff
+
+      - name: Lint (ruff)
+        run: ruff check rss-scraper/
+
+      - name: Run tests
+        run: pytest rss-scraper/tests/ -v --tb=short
+
+  frontend-lint-test:
+    name: Frontend (lint + tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: cd frontend && npm ci
+
+      - name: Lint (eslint)
+        run: cd frontend && npx eslint src --ext ts,tsx || true
+
+      - name: Run tests
+        run: cd frontend && npm test

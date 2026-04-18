@@ -1,0 +1,23 @@
+name: Docker Build
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build Docker images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build RSS Scraper
+        run: docker build ./rss-scraper -t goiania-rss-scraper:test
+
+      - name: Build Backend
+        run: docker build ./backend -t goiania-backend:test
+
+      - name: Build Frontend
+        run: docker build ./frontend -t goiania-frontend:test
