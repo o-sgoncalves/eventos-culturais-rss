@@ -112,12 +112,11 @@ def remove_source(source_id: int, db: Session = Depends(get_db), _: User = Depen
 
 @router.post("/api/admin/trigger-scrape", status_code=202)
 def trigger_scrape(_: User = Depends(_require_admin)):
-    try:
-        from workers.rss_processor import run_once
-        import threading
-        threading.Thread(target=run_once, daemon=True).start()
-    except ImportError:
-        pass
+    import logging as _logging
+    import threading
+    from workers.rss_processor import run_once
+    _logging.getLogger(__name__).info("Scraping manual disparado via admin")
+    threading.Thread(target=run_once, daemon=True).start()
     return {"detail": "Scraping iniciado em background"}
 
 
@@ -137,12 +136,16 @@ def stats(db: Session = Depends(get_db), _: User = Depends(_require_admin)):
 
 @router.post("/api/import", status_code=201)
 def import_events(events: list[dict], db: Session = Depends(get_db), _: User = Depends(_require_admin)):
-    saved = 0
+    existing_urls = {
+        url for (url,) in db.query(Event.source_url).filter(
+            Event.source_url.in_([item.get("source_url") for item in events if item.get("source_url")])
+        ).all()
+    }
+    new_events = []
     for item in events:
-        existing = db.query(Event).filter(Event.source_url == item.get("source_url")).first()
-        if existing:
+        if item.get("source_url") in existing_urls:
             continue
-        event = Event(
+        new_events.append(Event(
             title=item.get("title", "Evento importado"),
             description=item.get("description"),
             event_date=item.get("event_date"),
@@ -153,11 +156,8 @@ def import_events(events: list[dict], db: Session = Depends(get_db), _: User = D
             source_url=item.get("source_url"),
             image_url=item.get("image_url"),
             approved=False,
-        )
-        db.add(event)
-        try:
-            db.commit()
-            saved += 1
-        except Exception:
-            db.rollback()
-    return {"imported": saved}
+        ))
+    if new_events:
+        db.add_all(new_events)
+        db.commit()
+    return {"imported": len(new_events)}

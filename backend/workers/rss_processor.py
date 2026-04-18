@@ -14,7 +14,7 @@ from workers.event_extractor import extract_event_data
 logger = logging.getLogger(__name__)
 
 
-def _process_source(source: Source, db) -> int:
+def _process_source(source: Source, db) -> int:  # db is a fresh session per call from run_once
     url = f"{settings.rss_service_url}/feed/{source.username}"
     try:
         response = httpx.get(url, timeout=30)
@@ -58,14 +58,14 @@ def _process_source(source: Source, db) -> int:
 
 
 def run_once() -> None:
-    db = SessionLocal()
-    try:
-        sources = db.query(Source).filter(Source.active == True).all()  # noqa: E712
-        logger.info("Iniciando scraping de %d fontes", len(sources))
-        total = sum(_process_source(s, db) for s in sources)
-        logger.info("Scraping concluído. %d novos eventos salvos.", total)
-    finally:
-        db.close()
+    with SessionLocal() as list_db:
+        sources = list_db.query(Source).filter(Source.active == True).all()  # noqa: E712
+    logger.info("Iniciando scraping de %d fontes", len(sources))
+    total = 0
+    for source in sources:
+        with SessionLocal() as db:
+            total += _process_source(source, db)
+    logger.info("Scraping concluído. %d novos eventos salvos.", total)
 
 
 def main() -> None:

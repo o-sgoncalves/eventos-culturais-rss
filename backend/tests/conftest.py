@@ -1,6 +1,11 @@
+import os
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# Set required env vars before any app imports so config validation passes
+os.environ.setdefault("DATABASE_URL", "postgresql://goiania:test@db:5432/goiania_cultural")
+os.environ.setdefault("JWT_SECRET", "test-secret-not-for-production")
 
 import pytest
 from fastapi.testclient import TestClient

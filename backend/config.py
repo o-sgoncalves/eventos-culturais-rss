@@ -2,9 +2,9 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    database_url: str = "postgresql://goiania:secret@db:5432/goiania_cultural"
+    database_url: str
     redis_url: str = "redis://redis:6379"
-    jwt_secret: str = "change-me-in-production"
+    jwt_secret: str
     jwt_algorithm: str = "HS256"
     jwt_expire_hours: int = 24
     rss_service_url: str = "http://rss-scraper:8000"

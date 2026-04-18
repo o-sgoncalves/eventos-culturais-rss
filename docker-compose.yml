@@ -4,8 +4,6 @@ services:
   rss-scraper:
     build: ./rss-scraper
     container_name: goiania-rss-scraper
-    ports:
-      - "8001:8000"
     volumes:
       - rss_cache:/app/cache
     environment:

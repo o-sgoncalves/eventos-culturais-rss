@@ -92,6 +92,9 @@ def export_ics(event_id: int, db: Session = Depends(get_db)):
         dtstart = dt_stamp
         dtend = dt_stamp
 
+    def _ics_escape(text: str) -> str:
+        return text.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n").replace("\r", "")
+
     ics = "\r\n".join([
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
@@ -101,9 +104,9 @@ def export_ics(event_id: int, db: Session = Depends(get_db)):
         f"DTSTAMP:{dt_stamp}",
         f"DTSTART:{dtstart}",
         f"DTEND:{dtend}",
-        f"SUMMARY:{event.title}",
-        f"DESCRIPTION:{(event.description or '').replace(chr(10), chr(92) + 'n')[:500]}",
-        f"LOCATION:{event.location or ''}",
+        f"SUMMARY:{_ics_escape(event.title)}",
+        f"DESCRIPTION:{_ics_escape((event.description or '')[:500])}",
+        f"LOCATION:{_ics_escape(event.location or '')}",
         "END:VEVENT",
         "END:VCALENDAR",
         "",
