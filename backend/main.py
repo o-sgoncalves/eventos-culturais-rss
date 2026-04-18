@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
-from routers import events
+from routers import events, admin
 
 logging.basicConfig(level=settings.log_level)
 
@@ -18,6 +18,7 @@ app.add_middleware(
 )
 
 app.include_router(events.router)
+app.include_router(admin.router)
 
 
 @app.get("/health")
