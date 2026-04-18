@@ -6,6 +6,8 @@ class Settings(BaseSettings):
     cache_ttl: int = 21600  # 6 horas em segundos
     cache_dir: str = "/app/cache"
     log_level: str = "INFO"
+    instagram_username: str = ""
+    instagram_password: str = ""
 
     instagram_accounts: List[str] = [
         "espacocultural_gyn",

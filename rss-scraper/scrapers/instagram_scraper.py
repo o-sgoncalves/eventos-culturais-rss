@@ -44,6 +44,8 @@ def _fetch_fresh(username: str) -> bytes:
         compress_json=False,
         quiet=True,
     )
+    if settings.instagram_username and settings.instagram_password:
+        loader.login(settings.instagram_username, settings.instagram_password)
     profile = instaloader.Profile.from_username(loader.context, username)
     posts = list(itertools.islice(profile.get_posts(), 20))
     return _build_rss(username, posts)

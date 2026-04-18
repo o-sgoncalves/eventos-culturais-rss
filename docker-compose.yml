@@ -9,6 +9,8 @@ services:
     environment:
       - CACHE_TTL=21600
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - INSTAGRAM_USERNAME=${INSTAGRAM_USERNAME:-}
+      - INSTAGRAM_PASSWORD=${INSTAGRAM_PASSWORD:-}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
